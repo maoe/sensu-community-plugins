@@ -23,6 +23,7 @@
 # - `--include-packet-counts`: Output packet metrics.
 # - `--include-speed`: Output a metric for the interface's speed. Useful when constructing
 #   a view of an interfaces capacity in graphite.
+# - `--version`: Set SNMP protocol version (SNMPv2c or SNMPv1)
 #
 # Copyright (c) 2013 Joe Miller
 #
@@ -98,12 +99,19 @@ class SNMPIfStatsGraphite < Sensu::Plugin::Metric::CLI::Graphite
     :default => false,
     :description => 'verbose output for debugging'
 
+  option :version,
+    :short => '-V VERSION',
+    :long => '--version VERSION',
+    :default => :SNMPv2c,
+    :description => 'SNMP version (SNMPv1 or SNMPv2c)',
+    :proc => Proc.new {|ver| ver.intern }
+
   def run
     ifTable_columns = %w[ifIndex ifOperStatus ifName ifDescr ifHCInOctets ifHCOutOctets ifHCInUcastPkts
                          ifHCOutUcastPkts ifHCInMulticastPkts ifHCOutMulticastPkts ifHCInBroadcastPkts
                          ifHCOutBroadcastPkts ifInErrors ifOutErrors ifInDiscards ifOutDiscards ifSpeed]
 
-    SNMP::Manager.open(:host => "#{config[:host]}", :community => "#{config[:community]}") do |manager|
+    SNMP::Manager.open(:host => "#{config[:host]}", :community => "#{config[:community]}", :version => config[:version]) do |manager|
       manager.walk(ifTable_columns) do |row_array|
         # turn row (an array) into a hash for eaiser access to the columns
         row = Hash[*ifTable_columns.zip(row_array).flatten]
